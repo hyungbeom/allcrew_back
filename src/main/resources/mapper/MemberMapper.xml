@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+    회원(Member) 테이블 CRUD SQL 매퍼.
+    namespace는 MemberMapper 인터페이스의 FQCN과 반드시 일치해야 한다.
+-->
+<mapper namespace="com.nodex.allcrew.mapper.MemberMapper">
+
+    <!-- 전체 회원 조회: PK 오름차순 정렬 (관리자 목록용) -->
+    <select id="findAll" resultType="Member">
+        SELECT id, name, email, role, created_at, updated_at
+        FROM members
+        ORDER BY id
+    </select>
+
+    <!-- PK 단건 조회 -->
+    <select id="findById" resultType="Member">
+        SELECT id, name, email, role, created_at, updated_at
+        FROM members
+        WHERE id = #{id}
+    </select>
+
+    <!-- 이메일 단건 조회: 중복 검증용 -->
+    <select id="findByEmail" resultType="Member">
+        SELECT id, name, email, role, created_at, updated_at
+        FROM members
+        WHERE email = #{email}
+    </select>
+
+    <!--
+        신규 회원 등록.
+        useGeneratedKeys: DB가 생성한 PK를 member.id에 자동 주입한다.
+        role 컬럼에 ADMIN 또는 USER 저장.
+    -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO members (name, email, role)
+        VALUES (#{name}, #{email}, #{role})
+    </insert>
+
+    <!-- 회원 정보 수정: role 포함, updated_at은 DB에서 현재 시각으로 갱신 -->
+    <update id="update">
+        UPDATE members
+        SET name = #{name},
+            email = #{email},
+            role = #{role},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <!-- PK 기준 물리 삭제 (관리자 전용) -->
+    <delete id="deleteById">
+        DELETE FROM members
+        WHERE id = #{id}
+    </delete>
+
+</mapper>
