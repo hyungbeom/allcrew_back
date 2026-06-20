@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nodex.allcrew.mapper.AdminInviteCodeMapper">
+
+    <select id="findByCode" resultType="AdminInviteCode">
+        SELECT id, agency_id, code, created_by_member_id, expires_at, used_at, used_by_member_id, created_at
+        FROM admin_invite_codes
+        WHERE code = #{code}
+    </select>
+
+    <update id="markUsed">
+        UPDATE admin_invite_codes
+        SET used_at = CURRENT_TIMESTAMP,
+            used_by_member_id = #{usedByMemberId}
+        WHERE id = #{id}
+    </update>
+
+</mapper>

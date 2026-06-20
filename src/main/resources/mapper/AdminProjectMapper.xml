@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nodex.allcrew.mapper.AdminProjectMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO admin_projects (
+            agency_id, project_code, name, event_type, description, cover_image_url,
+            start_date, end_date, work_start_time, work_end_time,
+            address, address_detail, gps_radius, break_minutes, welfare,
+            recruitment_deadline, preferred_qualifications, start_recruitment_immediately,
+            status, crew_current, crew_total, budget, progress, created_by_member_id
+        )
+        VALUES (
+            #{agencyId}, #{projectCode}, #{name}, #{eventType}, #{description}, #{coverImageUrl},
+            #{startDate}, #{endDate}, #{workStartTime}, #{workEndTime},
+            #{address}, #{addressDetail}, #{gpsRadius}, #{breakMinutes}, #{welfare},
+            #{recruitmentDeadline}, #{preferredQualifications}, #{startRecruitmentImmediately},
+            #{status}, #{crewCurrent}, #{crewTotal}, #{budget}, #{progress}, #{createdByMemberId}
+        )
+    </insert>
+
+    <select id="findNextProjectSequence" resultType="int">
+        SELECT COALESCE(
+            MAX(CAST(SUBSTRING(project_code FROM 5) AS INT)),
+            0
+        ) + 1
+        FROM admin_projects
+    </select>
+
+    <select id="findByAgencyId" resultType="AdminProject">
+        SELECT id, agency_id, project_code, name, event_type, description, cover_image_url,
+               start_date, end_date, work_start_time, work_end_time,
+               address, address_detail, gps_radius, break_minutes, welfare,
+               recruitment_deadline, preferred_qualifications, start_recruitment_immediately,
+               status, crew_current, crew_total, budget, progress, created_by_member_id,
+               created_at, updated_at
+        FROM admin_projects
+        WHERE agency_id = #{agencyId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findByProjectCode" resultType="AdminProject">
+        SELECT id, agency_id, project_code, name, event_type, description, cover_image_url,
+               start_date, end_date, work_start_time, work_end_time,
+               address, address_detail, gps_radius, break_minutes, welfare,
+               recruitment_deadline, preferred_qualifications, start_recruitment_immediately,
+               status, crew_current, crew_total, budget, progress, created_by_member_id,
+               created_at, updated_at
+        FROM admin_projects
+        WHERE project_code = #{projectCode}
+    </select>
+
+    <select id="findById" resultType="AdminProject">
+        SELECT id, agency_id, project_code, name, event_type, description, cover_image_url,
+               start_date, end_date, work_start_time, work_end_time,
+               address, address_detail, gps_radius, break_minutes, welfare,
+               recruitment_deadline, preferred_qualifications, start_recruitment_immediately,
+               status, crew_current, crew_total, budget, progress, created_by_member_id,
+               created_at, updated_at
+        FROM admin_projects
+        WHERE id = #{id}
+    </select>
+
+    <select id="countByAgencyIdAndStatus" resultType="int">
+        SELECT COUNT(*) FROM admin_projects
+        WHERE agency_id = #{agencyId} AND status = #{status}
+    </select>
+
+</mapper>

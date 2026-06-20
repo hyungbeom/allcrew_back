@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nodex.allcrew.mapper.AdminMemberMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO admin_members (
+            agency_id, signup_type, name, phone, email, password,
+            agree_terms, agree_privacy, agree_location, agree_marketing,
+            invite_code_used, member_role, is_active
+        )
+        VALUES (
+            #{agencyId}, #{signupType}, #{name}, #{phone}, #{email}, #{password},
+            #{agreeTerms}, #{agreePrivacy}, #{agreeLocation}, #{agreeMarketing},
+            #{inviteCodeUsed}, #{memberRole}, #{isActive}
+        )
+    </insert>
+
+    <select id="findByEmail" resultType="AdminMember">
+        SELECT id, agency_id, signup_type, name, phone, email, password,
+               agree_terms, agree_privacy, agree_location, agree_marketing,
+               invite_code_used, member_role, is_active, last_login_at, created_at, updated_at
+        FROM admin_members
+        WHERE email = #{email}
+    </select>
+
+    <select id="existsByEmail" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1 FROM admin_members WHERE email = #{email}
+        )
+    </select>
+
+    <update id="updateLastLoginAt">
+        UPDATE admin_members
+        SET last_login_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <select id="findById" resultType="AdminMember">
+        SELECT id, agency_id, signup_type, name, phone, email, password,
+               agree_terms, agree_privacy, agree_location, agree_marketing,
+               invite_code_used, member_role, is_active, last_login_at, created_at, updated_at
+        FROM admin_members
+        WHERE id = #{id}
+    </select>
+
+</mapper>

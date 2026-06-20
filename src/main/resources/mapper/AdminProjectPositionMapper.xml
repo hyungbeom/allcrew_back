@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nodex.allcrew.mapper.AdminProjectPositionMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO admin_project_positions (project_id, name, headcount, pay_type, amount, sort_order)
+        VALUES (#{projectId}, #{name}, #{headcount}, #{payType}, #{amount}, #{sortOrder})
+    </insert>
+
+    <insert id="insertBatch">
+        INSERT INTO admin_project_positions (project_id, name, headcount, pay_type, amount, sort_order)
+        VALUES
+        <foreach collection="positions" item="item" separator=",">
+            (#{item.projectId}, #{item.name}, #{item.headcount}, #{item.payType}, #{item.amount}, #{item.sortOrder})
+        </foreach>
+    </insert>
+
+    <select id="findByProjectId" resultType="AdminProjectPosition">
+        SELECT id, project_id, name, headcount, pay_type, amount, sort_order, created_at
+        FROM admin_project_positions
+        WHERE project_id = #{projectId}
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+</mapper>

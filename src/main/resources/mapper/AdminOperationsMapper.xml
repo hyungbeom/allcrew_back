@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.nodex.allcrew.mapper.AdminOperationsMapper">
+
+    <select id="findCrewByAgencyId" resultType="AdminCrewMember">
+        SELECT id, agency_id, crew_code, name, phone, role, project_count, work_days,
+               recent_work_date, safety_training, rating, created_at
+        FROM admin_crew_members
+        WHERE agency_id = #{agencyId}
+        ORDER BY name ASC
+    </select>
+
+    <select id="findCrewProjectCodes" resultType="string">
+        SELECT project_code FROM admin_crew_project_links WHERE crew_id = #{crewId}
+    </select>
+
+    <select id="findContractsByAgencyId" resultType="AdminContract">
+        SELECT id, agency_id, contract_code, crew_name, crew_role, project_name, project_code,
+               contract_type, sent_date, signed_date, status, created_at
+        FROM admin_contracts
+        WHERE agency_id = #{agencyId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findSettlementsByAgencyId" resultType="AdminSettlement">
+        SELECT id, agency_id, settlement_code, crew_name, crew_role, work_hours, hourly_rate,
+               pre_tax, deduction, net_pay, status, project_code, created_at
+        FROM admin_settlements
+        WHERE agency_id = #{agencyId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findChatRoomsByAgencyId" resultType="AdminChatRoom">
+        SELECT id, agency_id, room_code, title, preview, room_time, room_type, project_code,
+               avatar_text, avatar_color, created_at
+        FROM admin_chat_rooms
+        WHERE agency_id = #{agencyId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findIncidentsByAgencyId" resultType="AdminSafenetIncident">
+        SELECT id, agency_id, incident_code, title, project_name, location, reporter,
+               incident_time, status, project_code, created_at
+        FROM admin_safenet_incidents
+        WHERE agency_id = #{agencyId}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findActivitiesByAgencyId" resultType="AdminActivity">
+        SELECT id, agency_id, content, activity_date, created_at
+        FROM admin_activities
+        WHERE agency_id = #{agencyId}
+        ORDER BY activity_date DESC, id DESC
+        LIMIT 10
+    </select>
+
+    <select id="findEducationSettings" resultType="AdminEducationSettings">
+        SELECT id, agency_id, project_code, ktl_required, site_required, updated_at
+        FROM admin_education_settings
+        WHERE agency_id = #{agencyId}
+          AND (
+            (#{projectCode} IS NULL AND project_code IS NULL)
+            OR project_code = #{projectCode}
+          )
+        LIMIT 1
+    </select>
+
+    <insert id="insertEducationSettings" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO admin_education_settings (agency_id, project_code, ktl_required, site_required)
+        VALUES (#{agencyId}, #{projectCode}, #{ktlRequired}, #{siteRequired})
+    </insert>
+
+    <update id="updateEducationSettings">
+        UPDATE admin_education_settings
+        SET ktl_required = #{ktlRequired},
+            site_required = #{siteRequired},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <select id="countSettlementsByStatus" resultType="int">
+        SELECT COUNT(*) FROM admin_settlements
+        WHERE agency_id = #{agencyId} AND status = #{status}
+    </select>
+
+    <select id="countCrewByAgencyId" resultType="int">
+        SELECT COUNT(*) FROM admin_crew_members WHERE agency_id = #{agencyId}
+    </select>
+
+    <select id="countIncidentsByStatus" resultType="int">
+        SELECT COUNT(*) FROM admin_safenet_incidents
+        WHERE agency_id = #{agencyId} AND status = #{status}
+    </select>
+
+</mapper>
