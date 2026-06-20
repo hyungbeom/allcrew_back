@@ -17,6 +17,11 @@ data class CrewMemberResponse(
 
 data class CrewListResponse(val items: List<CrewMemberResponse>, val total: Int)
 
+data class CreateCrewResponse(
+    val message: String,
+    val crew: CrewMemberResponse,
+)
+
 data class ContractResponse(
     val id: String,
     val crewName: String,
@@ -81,6 +86,36 @@ data class ChatRoomResponse(
 )
 
 data class ChatListResponse(val items: List<ChatRoomResponse>, val total: Int)
+
+data class CreateDirectChatResponse(
+    val message: String,
+    val room: ChatRoomResponse,
+)
+
+data class CreateGroupChatResponse(
+    val message: String,
+    val room: ChatRoomResponse,
+)
+
+data class ChatMessageResponse(
+    val id: String,
+    val senderType: String,
+    val senderName: String,
+    val content: String,
+    val sentAt: String,
+    val sentAtIso: String,
+    val isMine: Boolean,
+)
+
+data class ChatMessageListResponse(
+    val items: List<ChatMessageResponse>,
+    val total: Int,
+)
+
+data class SendChatMessageResponse(
+    val message: ChatMessageResponse,
+    val room: ChatRoomResponse,
+)
 
 data class IncidentResponse(
     val id: String,

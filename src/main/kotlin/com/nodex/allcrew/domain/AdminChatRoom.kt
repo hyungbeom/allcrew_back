@@ -13,5 +13,6 @@ data class AdminChatRoom(
     val projectCode: String,
     val avatarText: String,
     val avatarColor: String,
+    val crewCode: String? = null,
     val createdAt: LocalDateTime? = null,
 )

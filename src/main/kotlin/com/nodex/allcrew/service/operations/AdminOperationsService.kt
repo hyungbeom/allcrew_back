@@ -1,15 +1,27 @@
 package com.nodex.allcrew.service.operations
 
+import com.nodex.allcrew.domain.AdminChatMessage
+import com.nodex.allcrew.domain.AdminChatRoom
 import com.nodex.allcrew.domain.AdminEducationSettings
+import com.nodex.allcrew.domain.AdminCrewMember
+import com.nodex.allcrew.dto.operations.request.CreateCrewRequest
+import com.nodex.allcrew.dto.operations.request.CreateDirectChatRequest
+import com.nodex.allcrew.dto.operations.request.CreateGroupChatRequest
 import com.nodex.allcrew.dto.operations.request.UpdateAgencySettingsRequest
+import com.nodex.allcrew.dto.operations.request.SendChatMessageRequest
 import com.nodex.allcrew.dto.operations.request.UpdateEducationSettingsRequest
 import com.nodex.allcrew.dto.operations.response.ActivityResponse
 import com.nodex.allcrew.dto.operations.response.AgencySettingsResponse
 import com.nodex.allcrew.dto.operations.response.CategoryChartResponse
 import com.nodex.allcrew.dto.operations.response.ChartPointResponse
 import com.nodex.allcrew.dto.operations.response.ChatListResponse
+import com.nodex.allcrew.dto.operations.response.ChatMessageListResponse
+import com.nodex.allcrew.dto.operations.response.ChatMessageResponse
 import com.nodex.allcrew.dto.operations.response.ContractListResponse
 import com.nodex.allcrew.dto.operations.response.ContractStatsResponse
+import com.nodex.allcrew.dto.operations.response.CreateGroupChatResponse
+import com.nodex.allcrew.dto.operations.response.CreateDirectChatResponse
+import com.nodex.allcrew.dto.operations.response.CreateCrewResponse
 import com.nodex.allcrew.dto.operations.response.CrewListResponse
 import com.nodex.allcrew.dto.operations.response.DashboardAttendanceResponse
 import com.nodex.allcrew.dto.operations.response.DashboardProjectSummaryResponse
@@ -23,6 +35,7 @@ import com.nodex.allcrew.dto.operations.response.PttChannelResponse
 import com.nodex.allcrew.dto.operations.response.PttOverviewResponse
 import com.nodex.allcrew.dto.operations.response.SafenetListResponse
 import com.nodex.allcrew.dto.operations.response.SafenetWorkflowResponse
+import com.nodex.allcrew.dto.operations.response.SendChatMessageResponse
 import com.nodex.allcrew.dto.operations.response.SettlementListResponse
 import com.nodex.allcrew.dto.operations.response.SettlementSummaryResponse
 import com.nodex.allcrew.dto.operations.response.StatisticsResponse
@@ -36,7 +49,9 @@ import com.nodex.allcrew.service.auth.AuthenticatedAdmin
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
@@ -53,6 +68,48 @@ class AdminOperationsService(
             OperationResponseMapper.toCrewResponse(member, projectIds)
         }
         return CrewListResponse(items = items, total = items.size)
+    }
+
+    @Transactional
+    fun createCrew(auth: AuthenticatedAdmin, request: CreateCrewRequest): CreateCrewResponse {
+        val name = request.name.trim()
+        val phone = normalizePhone(request.phone.trim())
+        val role = request.role.trim()
+
+        val projectCodes = request.projectIds
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+
+        projectCodes.forEach { projectCode ->
+            val project = adminProjectMapper.findByProjectCode(projectCode)
+                ?: throw BusinessException(HttpStatus.BAD_REQUEST, "존재하지 않는 프로젝트입니다.")
+            if (project.agencyId != auth.agencyId) {
+                throw BusinessException(HttpStatus.FORBIDDEN, "해당 프로젝트에 접근할 수 없습니다.")
+            }
+        }
+
+        val member = AdminCrewMember(
+            agencyId = auth.agencyId,
+            crewCode = generateCrewCode(),
+            name = name,
+            phone = phone,
+            role = role,
+            projectCount = projectCodes.size,
+            workDays = 0,
+            recentWorkDate = null,
+            safetyTraining = null,
+            rating = BigDecimal("5.0"),
+        )
+
+        adminOperationsMapper.insertCrewMember(member)
+
+        projectCodes.forEach { projectCode ->
+            adminOperationsMapper.insertCrewProjectLink(member.id!!, projectCode)
+        }
+
+        val crew = OperationResponseMapper.toCrewResponse(member, projectCodes)
+        return CreateCrewResponse(message = "크루가 추가되었습니다.", crew = crew)
     }
 
     fun listContracts(auth: AuthenticatedAdmin): ContractListResponse {
@@ -84,6 +141,180 @@ class AdminOperationsService(
         val rooms = adminOperationsMapper.findChatRoomsByAgencyId(auth.agencyId)
         val items = rooms.map { OperationResponseMapper.toChatRoomResponse(it) }
         return ChatListResponse(items = items, total = items.size)
+    }
+
+    @Transactional
+    fun createDirectChat(auth: AuthenticatedAdmin, request: CreateDirectChatRequest): CreateDirectChatResponse {
+        val crewCode = request.crewId.trim()
+        val crew = adminOperationsMapper.findCrewByCode(auth.agencyId, crewCode)
+            ?: throw BusinessException(HttpStatus.NOT_FOUND, "크루를 찾을 수 없습니다.")
+
+        val crewProjects = adminOperationsMapper.findCrewProjectCodes(crew.id!!)
+        val preferredProject = request.projectCode?.trim()?.ifBlank { null }
+
+        val projectCode = when {
+            preferredProject != null -> {
+                if (preferredProject !in crewProjects) {
+                    throw BusinessException(HttpStatus.BAD_REQUEST, "선택한 프로젝트에 참여하지 않은 크루입니다.")
+                }
+                preferredProject
+            }
+            crewProjects.isNotEmpty() -> crewProjects.first()
+            else -> throw BusinessException(HttpStatus.BAD_REQUEST, "참여 프로젝트가 없는 크루입니다.")
+        }
+
+        val existing = adminOperationsMapper.findDirectChatRoom(auth.agencyId, crewCode, projectCode)
+        if (existing != null) {
+            return CreateDirectChatResponse(
+                message = "기존 1:1 채팅방으로 이동합니다.",
+                room = OperationResponseMapper.toChatRoomResponse(existing),
+            )
+        }
+
+        val project = adminProjectMapper.findByProjectCode(projectCode)
+            ?: throw BusinessException(HttpStatus.BAD_REQUEST, "존재하지 않는 프로젝트입니다.")
+
+        val room = AdminChatRoom(
+            agencyId = auth.agencyId,
+            roomCode = generateChatRoomCode(),
+            title = "${crew.name} · ${project.name}",
+            preview = "1:1 · 메시지가 없어요",
+            roomTime = LocalDateTime.now().format(chatTimeFormatter),
+            roomType = "DIRECT",
+            projectCode = projectCode,
+            avatarText = crew.name.first().toString(),
+            avatarColor = pickAvatarColor(crew.name),
+            crewCode = crewCode,
+        )
+
+        adminOperationsMapper.insertChatRoom(room)
+
+        return CreateDirectChatResponse(
+            message = "1:1 채팅방이 생성되었습니다.",
+            room = OperationResponseMapper.toChatRoomResponse(room),
+        )
+    }
+
+    @Transactional
+    fun createGroupChat(auth: AuthenticatedAdmin, request: CreateGroupChatRequest): CreateGroupChatResponse {
+        val projectCode = request.projectCode.trim()
+        val project = adminProjectMapper.findByProjectCode(projectCode)
+            ?: throw BusinessException(HttpStatus.BAD_REQUEST, "존재하지 않는 프로젝트입니다.")
+
+        if (project.agencyId != auth.agencyId) {
+            throw BusinessException(HttpStatus.FORBIDDEN, "해당 프로젝트에 접근할 수 없습니다.")
+        }
+
+        val crewIds = request.crewIds.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        if (crewIds.isEmpty()) {
+            throw BusinessException(HttpStatus.BAD_REQUEST, "최소 1명의 크루를 선택해 주세요.")
+        }
+
+        val crews = crewIds.map { crewCode ->
+            adminOperationsMapper.findCrewByCode(auth.agencyId, crewCode)
+                ?: throw BusinessException(HttpStatus.BAD_REQUEST, "크루를 찾을 수 없습니다.")
+        }
+
+        crews.forEach { crew ->
+            val crewProjects = adminOperationsMapper.findCrewProjectCodes(crew.id!!)
+            if (projectCode !in crewProjects) {
+                throw BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "${crew.name} 크루는 해당 프로젝트에 참여하지 않습니다.",
+                )
+            }
+        }
+
+        val title = request.title?.trim()?.ifBlank { null } ?: "${project.name} 전체"
+
+        val existing = adminOperationsMapper.findGroupChatRoom(auth.agencyId, projectCode, title)
+        if (existing != null) {
+            return CreateGroupChatResponse(
+                message = "기존 그룹 채팅방으로 이동합니다.",
+                room = OperationResponseMapper.toChatRoomResponse(existing),
+            )
+        }
+
+        val room = AdminChatRoom(
+            agencyId = auth.agencyId,
+            roomCode = generateChatRoomCode(),
+            title = title,
+            preview = buildGroupChatPreview(crews),
+            roomTime = LocalDateTime.now().format(chatTimeFormatter),
+            roomType = "PROJECT",
+            projectCode = projectCode,
+            avatarText = title.first().toString(),
+            avatarColor = pickAvatarColor(title),
+            crewCode = null,
+        )
+
+        adminOperationsMapper.insertChatRoom(room)
+
+        return CreateGroupChatResponse(
+            message = "그룹 채팅방이 생성되었습니다.",
+            room = OperationResponseMapper.toChatRoomResponse(room),
+        )
+    }
+
+    fun listChatMessages(auth: AuthenticatedAdmin, roomCode: String): ChatMessageListResponse {
+        val room = findChatRoomForAgency(auth, roomCode)
+        val messages = adminOperationsMapper.findChatMessagesByRoomId(room.id!!)
+        val items = messages.map {
+            OperationResponseMapper.toChatMessageResponse(it, auth.memberName)
+        }
+        return ChatMessageListResponse(items = items, total = items.size)
+    }
+
+    @Transactional
+    fun sendChatMessage(
+        auth: AuthenticatedAdmin,
+        roomCode: String,
+        request: SendChatMessageRequest,
+    ): SendChatMessageResponse {
+        val room = findChatRoomForAgency(auth, roomCode)
+        val content = request.content.trim()
+        if (content.isEmpty()) {
+            throw BusinessException(HttpStatus.BAD_REQUEST, "메시지를 입력해 주세요.")
+        }
+
+        val message = AdminChatMessage(
+            roomId = room.id!!,
+            senderType = "ADMIN",
+            senderName = auth.memberName,
+            content = content,
+        )
+        adminOperationsMapper.insertChatMessage(message)
+
+        val preview = buildChatPreview(room.roomType, auth.memberName, content)
+        val roomTime = LocalDateTime.now().format(chatTimeFormatter)
+        adminOperationsMapper.updateChatRoomPreview(room.id!!, preview, roomTime)
+
+        val updatedRoom = room.copy(preview = preview, roomTime = roomTime)
+        val messageResponse = OperationResponseMapper.toChatMessageResponse(message, auth.memberName)
+
+        return SendChatMessageResponse(
+            message = messageResponse,
+            room = OperationResponseMapper.toChatRoomResponse(updatedRoom),
+        )
+    }
+
+    private fun findChatRoomForAgency(auth: AuthenticatedAdmin, roomCode: String): AdminChatRoom {
+        val normalizedCode = roomCode.trim()
+        if (normalizedCode.isEmpty()) {
+            throw BusinessException(HttpStatus.BAD_REQUEST, "채팅방 코드가 필요합니다.")
+        }
+
+        return adminOperationsMapper.findChatRoomByCode(auth.agencyId, normalizedCode)
+            ?: throw BusinessException(HttpStatus.NOT_FOUND, "채팅방을 찾을 수 없습니다.")
+    }
+
+    private fun buildChatPreview(roomType: String, senderName: String, content: String): String {
+        val truncated = content.take(120)
+        return if (roomType == "DIRECT") {
+            truncated
+        } else {
+            "$senderName: $truncated"
+        }
     }
 
     fun listSafenet(auth: AuthenticatedAdmin): SafenetListResponse {
@@ -355,7 +586,41 @@ class AdminOperationsService(
         return monthLabels.mapIndexed { index, label -> ChartPointResponse(month = label, value = counts[index]) }
     }
 
+    private fun generateCrewCode(): String {
+        val sequence = adminOperationsMapper.findNextCrewSequence()
+        return "CRW-${sequence.toString().padStart(3, '0')}"
+    }
+
+    private fun generateChatRoomCode(): String {
+        val sequence = adminOperationsMapper.findNextChatRoomSequence()
+        return "CHT-${sequence.toString().padStart(4, '0')}"
+    }
+
+    private fun pickAvatarColor(name: String): String {
+        val colors = listOf("#1677ff", "#722ed1", "#13c2c2", "#fa8c16", "#eb2f96", "#52c41a")
+        val index = name.sumOf { it.code } % colors.size
+        return colors[index]
+    }
+
+    private fun buildGroupChatPreview(crews: List<AdminCrewMember>): String {
+        if (crews.size == 1) {
+            return "${crews[0].name} · 메시지가 없어요"
+        }
+
+        return "${crews[0].name} 외 ${crews.size - 1}명 · 메시지가 없어요"
+    }
+
+    private fun normalizePhone(input: String): String {
+        val digits = input.replace(Regex("\\D"), "")
+        if (digits.length != 11 || !digits.startsWith("01")) {
+            throw BusinessException(HttpStatus.BAD_REQUEST, "올바른 휴대폰 번호 형식이 아닙니다.")
+        }
+
+        return digits
+    }
+
     companion object {
         private val dotFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
+        private val chatTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     }
 }

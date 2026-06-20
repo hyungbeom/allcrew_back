@@ -16,6 +16,78 @@
         SELECT project_code FROM admin_crew_project_links WHERE crew_id = #{crewId}
     </select>
 
+    <select id="findNextCrewSequence" resultType="int">
+        SELECT COALESCE(
+            MAX(CAST(SUBSTRING(crew_code FROM 5) AS INT)),
+            0
+        ) + 1
+        FROM admin_crew_members
+    </select>
+
+    <insert id="insertCrewMember" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO admin_crew_members (
+            agency_id, crew_code, name, phone, role, project_count, work_days, recent_work_date, rating
+        )
+        VALUES (
+            #{agencyId}, #{crewCode}, #{name}, #{phone}, #{role}, #{projectCount}, #{workDays},
+            #{recentWorkDate}, #{rating}
+        )
+    </insert>
+
+    <insert id="insertCrewProjectLink">
+        INSERT INTO admin_crew_project_links (crew_id, project_code)
+        VALUES (#{crewId}, #{projectCode})
+    </insert>
+
+    <select id="findCrewByCode" resultType="AdminCrewMember">
+        SELECT id, agency_id, crew_code, name, phone, role, project_count, work_days,
+               recent_work_date, safety_training, rating, created_at
+        FROM admin_crew_members
+        WHERE agency_id = #{agencyId}
+          AND crew_code = #{crewCode}
+    </select>
+
+    <select id="findDirectChatRoom" resultType="AdminChatRoom">
+        SELECT id, agency_id, room_code, title, preview, room_time, room_type, project_code,
+               avatar_text, avatar_color, crew_code, created_at
+        FROM admin_chat_rooms
+        WHERE agency_id = #{agencyId}
+          AND room_type = 'DIRECT'
+          AND crew_code = #{crewCode}
+          AND project_code = #{projectCode}
+        LIMIT 1
+    </select>
+
+    <select id="findGroupChatRoom" resultType="AdminChatRoom">
+        SELECT id, agency_id, room_code, title, preview, room_time, room_type, project_code,
+               avatar_text, avatar_color, crew_code, created_at
+        FROM admin_chat_rooms
+        WHERE agency_id = #{agencyId}
+          AND room_type = 'PROJECT'
+          AND project_code = #{projectCode}
+          AND title = #{title}
+        LIMIT 1
+    </select>
+
+    <select id="findNextChatRoomSequence" resultType="int">
+        SELECT COALESCE(
+            MAX(CAST(SUBSTRING(room_code FROM 5) AS INT)),
+            0
+        ) + 1
+        FROM admin_chat_rooms
+    </select>
+
+    <insert id="insertChatRoom" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO admin_chat_rooms (
+            agency_id, room_code, title, preview, room_time, room_type, project_code,
+            avatar_text, avatar_color, crew_code
+        )
+        VALUES (
+            #{agencyId}, #{roomCode}, #{title}, #{preview}, #{roomTime}, #{roomType}, #{projectCode},
+            #{avatarText}, #{avatarColor}, #{crewCode}
+        )
+    </insert>
+
     <select id="findContractsByAgencyId" resultType="AdminContract">
         SELECT id, agency_id, contract_code, crew_name, crew_role, project_name, project_code,
                contract_type, sent_date, signed_date, status, created_at
@@ -34,11 +106,38 @@
 
     <select id="findChatRoomsByAgencyId" resultType="AdminChatRoom">
         SELECT id, agency_id, room_code, title, preview, room_time, room_type, project_code,
-               avatar_text, avatar_color, created_at
+               avatar_text, avatar_color, crew_code, created_at
         FROM admin_chat_rooms
         WHERE agency_id = #{agencyId}
         ORDER BY created_at DESC
     </select>
+
+    <select id="findChatRoomByCode" resultType="AdminChatRoom">
+        SELECT id, agency_id, room_code, title, preview, room_time, room_type, project_code,
+               avatar_text, avatar_color, crew_code, created_at
+        FROM admin_chat_rooms
+        WHERE agency_id = #{agencyId}
+          AND room_code = #{roomCode}
+    </select>
+
+    <select id="findChatMessagesByRoomId" resultType="AdminChatMessage">
+        SELECT id, room_id, sender_type, sender_name, content, created_at
+        FROM admin_chat_messages
+        WHERE room_id = #{roomId}
+        ORDER BY created_at ASC, id ASC
+    </select>
+
+    <insert id="insertChatMessage" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO admin_chat_messages (room_id, sender_type, sender_name, content)
+        VALUES (#{roomId}, #{senderType}, #{senderName}, #{content})
+    </insert>
+
+    <update id="updateChatRoomPreview">
+        UPDATE admin_chat_rooms
+        SET preview = #{preview},
+            room_time = #{roomTime}
+        WHERE id = #{roomId}
+    </update>
 
     <select id="findIncidentsByAgencyId" resultType="AdminSafenetIncident">
         SELECT id, agency_id, incident_code, title, project_name, location, reporter,

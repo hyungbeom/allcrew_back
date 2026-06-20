@@ -1,12 +1,14 @@
 package com.nodex.allcrew.service.operations
 
 import com.nodex.allcrew.domain.AdminActivity
+import com.nodex.allcrew.domain.AdminChatMessage
 import com.nodex.allcrew.domain.AdminChatRoom
 import com.nodex.allcrew.domain.AdminContract
 import com.nodex.allcrew.domain.AdminCrewMember
 import com.nodex.allcrew.domain.AdminSafenetIncident
 import com.nodex.allcrew.domain.AdminSettlement
 import com.nodex.allcrew.dto.operations.response.ActivityResponse
+import com.nodex.allcrew.dto.operations.response.ChatMessageResponse
 import com.nodex.allcrew.dto.operations.response.ChatRoomResponse
 import com.nodex.allcrew.dto.operations.response.ContractResponse
 import com.nodex.allcrew.dto.operations.response.CrewMemberResponse
@@ -17,12 +19,24 @@ import java.time.format.DateTimeFormatter
 object OperationResponseMapper {
     private val dotDateFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
     private val isoDateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    private val chatTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    private val chatDateFormatter = DateTimeFormatter.ofPattern("MM.dd")
+    private val chatIsoFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
+
+    fun formatCrewPhone(phone: String): String {
+        val digits = phone.replace(Regex("\\D"), "")
+        if (digits.length != 11) {
+            return phone
+        }
+
+        return "${digits.substring(0, 3)}-${digits.substring(3, 7)}-${digits.substring(7)}"
+    }
 
     fun toCrewResponse(member: AdminCrewMember, projectIds: List<String>): CrewMemberResponse =
         CrewMemberResponse(
             id = member.crewCode,
             name = member.name,
-            phone = member.phone,
+            phone = formatCrewPhone(member.phone),
             role = member.role,
             projectCount = member.projectCount,
             workDays = member.workDays,
@@ -70,6 +84,31 @@ object OperationResponseMapper {
             avatarText = room.avatarText,
             avatarColor = room.avatarColor,
         )
+
+    fun toChatMessageResponse(message: AdminChatMessage, currentAdminName: String): ChatMessageResponse {
+        val createdAt = message.createdAt ?: java.time.LocalDateTime.now()
+        val sentAt = if (createdAt.toLocalDate() == java.time.LocalDate.now()) {
+            createdAt.format(chatTimeFormatter)
+        } else {
+            createdAt.format(chatDateFormatter)
+        }
+
+        return ChatMessageResponse(
+            id = message.id!!.toString(),
+            senderType = mapMessageSenderType(message.senderType),
+            senderName = message.senderName,
+            content = message.content,
+            sentAt = sentAt,
+            sentAtIso = createdAt.format(chatIsoFormatter),
+            isMine = message.senderType == "ADMIN" && message.senderName == currentAdminName,
+        )
+    }
+
+    private fun mapMessageSenderType(senderType: String): String =
+        when (senderType) {
+            "ADMIN" -> "admin"
+            else -> "crew"
+        }
 
     fun toIncidentResponse(incident: AdminSafenetIncident): IncidentResponse =
         IncidentResponse(
