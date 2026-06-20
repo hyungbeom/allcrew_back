@@ -3,10 +3,12 @@ package com.nodex.allcrew.controller.crew
 import com.nodex.allcrew.dto.operations.request.CreateCrewRequest
 import com.nodex.allcrew.dto.operations.response.CreateCrewResponse
 import com.nodex.allcrew.dto.operations.response.CrewListResponse
+import com.nodex.allcrew.dto.operations.response.CrewMemberResponse
 import com.nodex.allcrew.service.auth.AdminAuthSupport
 import com.nodex.allcrew.service.operations.AdminOperationsService
 import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
@@ -25,6 +27,15 @@ class AdminCrewController(
     ): CrewListResponse {
         val auth = adminAuthSupport.authenticate(authorization)
         return adminOperationsService.listCrew(auth)
+    }
+
+    @GetMapping("/{crewCode}")
+    fun getCrew(
+        @RequestHeader("Authorization") authorization: String?,
+        @PathVariable crewCode: String,
+    ): CrewMemberResponse {
+        val auth = adminAuthSupport.authenticate(authorization)
+        return adminOperationsService.getCrew(auth, crewCode)
     }
 
     @PostMapping

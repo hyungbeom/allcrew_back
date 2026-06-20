@@ -23,6 +23,7 @@ import com.nodex.allcrew.dto.operations.response.CreateGroupChatResponse
 import com.nodex.allcrew.dto.operations.response.CreateDirectChatResponse
 import com.nodex.allcrew.dto.operations.response.CreateCrewResponse
 import com.nodex.allcrew.dto.operations.response.CrewListResponse
+import com.nodex.allcrew.dto.operations.response.CrewMemberResponse
 import com.nodex.allcrew.dto.operations.response.DashboardAttendanceResponse
 import com.nodex.allcrew.dto.operations.response.DashboardProjectSummaryResponse
 import com.nodex.allcrew.dto.operations.response.DashboardResponse
@@ -68,6 +69,19 @@ class AdminOperationsService(
             OperationResponseMapper.toCrewResponse(member, projectIds)
         }
         return CrewListResponse(items = items, total = items.size)
+    }
+
+    fun getCrew(auth: AuthenticatedAdmin, crewCode: String): CrewMemberResponse {
+        val normalizedCode = crewCode.trim()
+        if (normalizedCode.isEmpty()) {
+            throw BusinessException(HttpStatus.BAD_REQUEST, "크루 코드가 필요합니다.")
+        }
+
+        val member = adminOperationsMapper.findCrewByCode(auth.agencyId, normalizedCode)
+            ?: throw BusinessException(HttpStatus.NOT_FOUND, "크루를 찾을 수 없습니다.")
+
+        val projectIds = adminOperationsMapper.findCrewProjectCodes(member.id!!)
+        return OperationResponseMapper.toCrewResponse(member, projectIds)
     }
 
     @Transactional
