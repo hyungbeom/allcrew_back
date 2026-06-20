@@ -32,7 +32,7 @@
     <select id="findByAgencyId" resultType="AdminProject">
         SELECT id, agency_id, project_code, name, event_type, description, cover_image_url,
                start_date, end_date, work_start_time, work_end_time,
-               address, address_detail, gps_radius, break_minutes, welfare,
+               address, address_detail, latitude, longitude, gps_radius, break_minutes, welfare,
                recruitment_deadline, preferred_qualifications, start_recruitment_immediately,
                status, crew_current, crew_total, budget, progress, created_by_member_id,
                created_at, updated_at
@@ -44,7 +44,7 @@
     <select id="findByProjectCode" resultType="AdminProject">
         SELECT id, agency_id, project_code, name, event_type, description, cover_image_url,
                start_date, end_date, work_start_time, work_end_time,
-               address, address_detail, gps_radius, break_minutes, welfare,
+               address, address_detail, latitude, longitude, gps_radius, break_minutes, welfare,
                recruitment_deadline, preferred_qualifications, start_recruitment_immediately,
                status, crew_current, crew_total, budget, progress, created_by_member_id,
                created_at, updated_at
@@ -55,7 +55,7 @@
     <select id="findById" resultType="AdminProject">
         SELECT id, agency_id, project_code, name, event_type, description, cover_image_url,
                start_date, end_date, work_start_time, work_end_time,
-               address, address_detail, gps_radius, break_minutes, welfare,
+               address, address_detail, latitude, longitude, gps_radius, break_minutes, welfare,
                recruitment_deadline, preferred_qualifications, start_recruitment_immediately,
                status, crew_current, crew_total, budget, progress, created_by_member_id,
                created_at, updated_at
@@ -67,5 +67,14 @@
         SELECT COUNT(*) FROM admin_projects
         WHERE agency_id = #{agencyId} AND status = #{status}
     </select>
+
+    <update id="updateLocation">
+        UPDATE admin_projects
+        SET latitude = #{latitude},
+            longitude = #{longitude},
+            address = COALESCE(#{address}, address),
+            updated_at = CURRENT_TIMESTAMP
+        WHERE project_code = #{projectCode}
+    </update>
 
 </mapper>

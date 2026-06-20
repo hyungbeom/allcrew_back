@@ -38,5 +38,17 @@ class PostgresSchemaMigration(
             CREATE INDEX IF NOT EXISTS idx_admin_chat_messages_room_id ON admin_chat_messages (room_id)
             """.trimIndent(),
         )
+        jdbcTemplate.execute(
+            """
+            ALTER TABLE admin_projects
+                ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION
+            """.trimIndent(),
+        )
+        jdbcTemplate.execute(
+            """
+            ALTER TABLE admin_projects
+                ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION
+            """.trimIndent(),
+        )
     }
 }

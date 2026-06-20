@@ -14,6 +14,14 @@ data class LoginRequest(
     val password: String,
 )
 
+data class OAuthLoginRequest(
+    @field:NotBlank(message = "인증 코드가 필요합니다.")
+    val code: String,
+
+    @field:NotBlank(message = "redirectUri가 필요합니다.")
+    val redirectUri: String,
+)
+
 data class SignupRepresentativeRequest(
     @field:NotBlank val name: String,
     @field:NotBlank @field:Pattern(regexp = "^\\d{10,11}$") val phone: String,

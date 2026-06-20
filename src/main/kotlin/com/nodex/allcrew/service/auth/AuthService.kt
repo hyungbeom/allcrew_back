@@ -3,6 +3,7 @@ package com.nodex.allcrew.service.auth
 import com.nodex.allcrew.domain.AdminAgency
 import com.nodex.allcrew.domain.AdminMember
 import com.nodex.allcrew.dto.auth.request.LoginRequest
+import com.nodex.allcrew.dto.auth.request.OAuthLoginRequest
 import com.nodex.allcrew.dto.auth.request.SignupEmployeeRequest
 import com.nodex.allcrew.dto.auth.request.SignupRepresentativeRequest
 import com.nodex.allcrew.dto.auth.response.AuthMemberResponse
@@ -62,6 +63,18 @@ class AuthService(
 
         adminMemberMapper.updateLastLoginAt(member.id!!)
         return buildAuthResponse(member)
+    }
+
+    fun oauthLogin(provider: String, request: OAuthLoginRequest): AuthResponse {
+        val normalizedProvider = provider.trim().lowercase()
+        if (normalizedProvider !in setOf("kakao", "google", "apple")) {
+            throw BusinessException(HttpStatus.BAD_REQUEST, "지원하지 않는 SNS 로그인입니다.")
+        }
+
+        throw BusinessException(
+            HttpStatus.NOT_IMPLEMENTED,
+            "SNS 로그인 연동 설정이 필요합니다. 관리자에게 문의해 주세요.",
+        )
     }
 
     @Transactional

@@ -1,6 +1,7 @@
 package com.nodex.allcrew.controller.auth
 
 import com.nodex.allcrew.dto.auth.request.LoginRequest
+import com.nodex.allcrew.dto.auth.request.OAuthLoginRequest
 import com.nodex.allcrew.dto.auth.request.SignupEmployeeRequest
 import com.nodex.allcrew.dto.auth.request.SignupRepresentativeRequest
 import com.nodex.allcrew.dto.auth.response.AuthResponse
@@ -11,6 +12,7 @@ import com.nodex.allcrew.dto.auth.response.SignupResponse
 import com.nodex.allcrew.service.auth.AuthService
 import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -25,6 +27,12 @@ class AuthController(
     @PostMapping("/login")
     fun login(@Valid @RequestBody request: LoginRequest): AuthResponse =
         authService.login(request)
+
+    @PostMapping("/oauth/{provider}")
+    fun oauthLogin(
+        @PathVariable provider: String,
+        @Valid @RequestBody request: OAuthLoginRequest,
+    ): AuthResponse = authService.oauthLogin(provider, request)
 
     @PostMapping("/signup/representative")
     fun signupRepresentative(@Valid @RequestBody request: SignupRepresentativeRequest): SignupResponse =

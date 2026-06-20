@@ -20,4 +20,11 @@ interface AdminProjectMapper {
         @Param("agencyId") agencyId: Long,
         @Param("status") status: String,
     ): Int
+
+    fun updateLocation(
+        @Param("projectCode") projectCode: String,
+        @Param("latitude") latitude: Double,
+        @Param("longitude") longitude: Double,
+        @Param("address") address: String?,
+    ): Int
 }

@@ -3,6 +3,7 @@ package com.nodex.allcrew.service.project
 import com.nodex.allcrew.domain.AdminProject
 import com.nodex.allcrew.domain.AdminProjectPosition
 import com.nodex.allcrew.dto.project.request.CreateProjectRequest
+import com.nodex.allcrew.dto.project.request.UpdateProjectLocationRequest
 import com.nodex.allcrew.dto.project.response.CreateProjectResponse
 import com.nodex.allcrew.dto.project.response.ProjectDetailResponse
 import com.nodex.allcrew.dto.project.response.ProjectListResponse
@@ -44,6 +45,34 @@ class AdminProjectService(
         val creator = adminMemberMapper.findById(project.createdByMemberId)
 
         return toProjectDetailResponse(project, positions, creator?.name)
+    }
+
+    @Transactional
+    fun updateProjectLocation(
+        auth: AuthenticatedAdmin,
+        projectCode: String,
+        request: UpdateProjectLocationRequest,
+    ): ProjectDetailResponse {
+        val project = adminProjectMapper.findByProjectCode(projectCode.trim())
+            ?: throw BusinessException(HttpStatus.NOT_FOUND, "프로젝트를 찾을 수 없습니다.")
+
+        if (project.agencyId != auth.agencyId) {
+            throw BusinessException(HttpStatus.FORBIDDEN, "해당 프로젝트에 접근할 수 없습니다.")
+        }
+
+        val normalizedAddress = request.address?.trim()?.takeIf { it.isNotEmpty() }
+        adminProjectMapper.updateLocation(
+            projectCode = project.projectCode,
+            latitude = request.latitude,
+            longitude = request.longitude,
+            address = normalizedAddress,
+        )
+
+        val updatedProject = adminProjectMapper.findByProjectCode(project.projectCode)!!
+        val positions = adminProjectPositionMapper.findByProjectId(updatedProject.id!!)
+        val creator = adminMemberMapper.findById(updatedProject.createdByMemberId)
+
+        return toProjectDetailResponse(updatedProject, positions, creator?.name)
     }
 
     @Transactional
@@ -202,6 +231,8 @@ class AdminProjectService(
             location = buildLocation(project),
             address = project.address,
             addressDetail = project.addressDetail,
+            latitude = project.latitude,
+            longitude = project.longitude,
             startDate = project.startDate.format(shortDateFormatter),
             endDate = project.endDate.format(shortDateFormatter),
             crewCurrent = project.crewCurrent,

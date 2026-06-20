@@ -74,6 +74,8 @@ CREATE TABLE IF NOT EXISTS admin_projects (
     work_end_time                 TIME         NOT NULL,
     address                       VARCHAR(500) NOT NULL,
     address_detail                VARCHAR(200),
+    latitude                      DOUBLE PRECISION,
+    longitude                     DOUBLE PRECISION,
     gps_radius                    INT          NOT NULL DEFAULT 100,
     break_minutes                 INT          NOT NULL DEFAULT 60,
     welfare                       VARCHAR(200),

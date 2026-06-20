@@ -45,6 +45,8 @@ data class ProjectDetailResponse(
     val location: String,
     val address: String,
     val addressDetail: String?,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val startDate: String,
     val endDate: String,
     val crewCurrent: Int,

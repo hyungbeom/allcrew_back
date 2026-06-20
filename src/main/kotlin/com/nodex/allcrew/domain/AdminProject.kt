@@ -18,6 +18,8 @@ data class AdminProject(
     val workEndTime: LocalTime,
     val address: String,
     val addressDetail: String? = null,
+    val latitude: Double? = null,
+    val longitude: Double? = null,
     val gpsRadius: Int = 100,
     val breakMinutes: Int = 60,
     val welfare: String? = null,
