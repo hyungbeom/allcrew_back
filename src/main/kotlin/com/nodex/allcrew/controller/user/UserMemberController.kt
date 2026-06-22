@@ -47,3 +47,6 @@ class UserMemberController(
         @Valid @RequestBody request: UserProfileUpdateRequest,
     ): MemberResponse = userMemberService.updateProfile(id, request)
 }
+
+
+
