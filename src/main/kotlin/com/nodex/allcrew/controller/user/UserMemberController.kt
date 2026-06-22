@@ -27,6 +27,7 @@ class UserMemberController(
     private val userMemberService: UserMemberService,
 ) {
 
+
     /** 회원가입 (역할 USER 고정) */
     @PostMapping
     fun signup(
