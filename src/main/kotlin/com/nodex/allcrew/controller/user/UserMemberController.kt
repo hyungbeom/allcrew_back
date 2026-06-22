@@ -28,6 +28,7 @@ class UserMemberController(
 ) {
 
 
+
     /** 회원가입 (역할 USER 고정) */
     @PostMapping
     fun signup(
